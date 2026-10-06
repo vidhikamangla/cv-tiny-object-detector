@@ -1,6 +1,7 @@
 # TinyDet — anchor-free small-object detection for drone imagery
 
-A detector trained from scratch-of-head on **VisDrone2019-DET**, written to answer one
+A detector whose head, losses and training loop are written from scratch, trained on
+**VisDrone2019-DET** to answer one
 question with numbers: *which design choices actually help objects that are 6–30 pixels
 across?*
 
