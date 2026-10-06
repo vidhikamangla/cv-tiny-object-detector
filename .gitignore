@@ -1,0 +1,28 @@
+# heavy / regenerable
+data/
+third_party/
+.venv*/
+__pycache__/
+*.pyc
+*.pt
+*.pth
+*.onnx
+*.engine
+*.tar
+*.zip
+*.npy
+*.npz
+
+# run outputs are regenerable EXCEPT the tables and figures we publish
+outputs/*
+!outputs/results/
+outputs/results/*
+!outputs/results/*.md
+!outputs/results/*.csv
+!outputs/results/*.json
+!outputs/figures/
+outputs/figures/*
+!outputs/figures/*.png
+
+# committed demo media lives in assets/
+!assets/

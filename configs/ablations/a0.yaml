@@ -1,0 +1,20 @@
+# A0 - geometry-only baseline: static centre-prior assignment, BCE + GIoU,
+# horizontal flip as the only augmentation, no EMA.
+_base: ../base.yaml
+run_name: a0_baseline
+train:
+  device: cuda:0
+  ema: false
+aug:
+  mosaic: 0.0
+  scale: 0.0
+  translate: 0.0
+  flip: 0.5
+  hsv_h: 0.0
+  hsv_s: 0.0
+  hsv_v: 0.0
+loss:
+  assigner: center_prior
+  cls: bce
+  box: giou
+  topk: 9

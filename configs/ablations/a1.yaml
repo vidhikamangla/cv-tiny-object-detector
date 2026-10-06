@@ -1,0 +1,12 @@
+# A1 = A0 + mosaic/HSV/scale-jitter + EMA. Isolates "does the augmentation and
+# weight-averaging recipe pay for itself on a 15-epoch budget?"
+_base: ../base.yaml
+run_name: a1_aug_ema
+train:
+  device: cuda:1
+  ema: true
+loss:
+  assigner: center_prior
+  cls: bce
+  box: giou
+  topk: 9

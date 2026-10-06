@@ -1,0 +1,14 @@
+torch>=2.5
+torchvision
+timm>=1.0                  # ImageNet-pretrained backbones (features_only)
+pycocotools                # mAP, with our own size bins
+opencv-python-headless>=4.11
+numpy>=2.0
+pyyaml
+tqdm
+pandas
+matplotlib
+onnx
+onnxsim
+gradio                     # demo app
+pytest

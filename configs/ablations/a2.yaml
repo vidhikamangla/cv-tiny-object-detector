@@ -1,0 +1,12 @@
+# A2 = A1 + prediction-aware assignment (TAL) + CIoU. The headline row:
+# everything else held fixed, only the assignment rule and box loss change.
+_base: ../base.yaml
+run_name: a2_tal_ciou
+train:
+  device: cuda:2
+  ema: true
+loss:
+  assigner: tal
+  cls: bce
+  box: ciou
+  topk: 10

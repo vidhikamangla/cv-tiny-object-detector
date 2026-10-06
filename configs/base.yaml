@@ -1,0 +1,59 @@
+# Single source of truth. Ablation rows are diffs against this file.
+run_name: base
+
+paths:
+  train_cache: /home/arnav/vidhika/vidhika/_data/cache/train640
+  val_cache: /home/arnav/vidhika/vidhika/_data/cache/val640
+  figures: outputs/figures
+
+data:
+  subset: null            # int -> use only the first N images (overfit tests)
+
+model:
+  backbone: resnet18      # timm name; features_only
+  out_ch: 128             # FPN/PAN width
+  p2: false               # add the stride-4 level (helps tiny, costs ~2x time)
+  pretrained: true        # ImageNet backbone init
+  head_stacks: 2
+
+train:
+  device: cuda:0
+  batch: 16
+  epochs: 15
+  lr: 0.001
+  weight_decay: 0.05
+  warmup_steps: 500
+  workers: 8
+  amp: true
+  ema: true
+  ema_decay: 0.9998
+  ema_tau: 2000
+  clip: 10.0
+  seed: 0
+  budget_minutes: 0       # >0 -> hard wall-clock stop, checkpoint kept
+
+aug:
+  mosaic: 1.0
+  scale: 0.4              # jitter centred on 1.0, floored at 0.6 (see transforms.py)
+  translate: 0.1
+  flip: 0.5
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.4
+
+loss:
+  assigner: tal           # center_prior | tal
+  cls: bce                # bce | focal | varifocal
+  box: ciou               # iou | giou | diou | ciou
+  w_cls: 1.0
+  w_box: 2.5
+  topk: 10
+  radius: 2.5             # center_prior only, in stride units
+  tal_alpha: 0.5
+  tal_beta: 6.0
+
+eval:
+  conf: 0.01
+  iou: 0.65
+  max_det: 500
+  batch: 16
