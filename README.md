@@ -1,9 +1,8 @@
 # TinyDet — anchor-free small-object detection for drone imagery
 
-A detector whose head, losses and training loop are written from scratch, trained on
-**VisDrone2019-DET** to answer one
-question with numbers: *which design choices actually help objects that are 6–30 pixels
-across?*
+A detector whose head, losses, assigners and training loop are written from scratch,
+trained on **VisDrone2019-DET** to answer one question with numbers: *which design
+choices actually help objects that are 6–30 pixels across?*
 
 The training loop, the label assigners, the box losses, the augmentations and the tiled
 inference are all implemented in this repo. The ImageNet backbone comes from `timm`, and
