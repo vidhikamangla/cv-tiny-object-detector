@@ -119,6 +119,33 @@ AP columns are COCO mAP x100. Size bins are ours, not COCO's: tiny < 16^2 px, sm
 
 ![AP by object size](outputs/figures/ap_by_size.png)
 
+### Resolution beats capacity, by a lot
+
+Two ways to spend compute on small objects were tested against the same A2 baseline, and
+the comparison is lopsided:
+
+| | AP gain | params added | latency | AP_tiny |
+|---|---|---|---|---|
+| **A3 — add a stride-4 level** | **+4.02** | **+0.5 M** | 1.59x | 5.77 → **10.28** |
+| T — swap ResNet-18 for ResNet-50 | +2.20 | +12.7 M | 1.98x | 5.77 → 7.23 |
+
+Adding one finer feature level gives **1.8x the accuracy
+gain of doubling the backbone, for about one twenty-fifth of the parameters**, and it is
+AP_tiny where the difference is starkest: +4.51 against
++1.47.
+
+That is the whole thesis of this project, measured. A 12x12-pixel object covers roughly one
+cell of a stride-8 map and a 6x6 object is sub-cell — there is nowhere to place a positive
+anchor and nothing to regress from, no matter how good the features at that cell are. More
+backbone capacity makes those features better; it does not make them *finer*. Only the
+stride does.
+
+The cost is real and worth stating: the stride-4 map quadruples the anchor count
+(8 400 → 34 000), which is activation memory and
+1.8x the training time, even though it adds almost
+no weights. That asymmetry — cheap in parameters, expensive in activations — is exactly why
+it was the first thing cut when this ran under a wall-clock budget.
+
 ### Honest framing of the compute budget
 
 All rows ran for **30 epochs at 640 px on one RTX A4000** (143 GPU-minutes total across the three rows), with the epoch count fixed in advance so the rows differ only in the component under test and not in how long they trained.
