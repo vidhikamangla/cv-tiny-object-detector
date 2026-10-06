@@ -8,8 +8,12 @@ LABELS = {
     "a0_baseline": "centre-prior assigner, BCE + GIoU, flip only, no EMA",
     "a1_aug_ema": "+ mosaic, HSV, scale jitter, EMA",
     "a2_tal_ciou": "+ TAL assigner, CIoU",
+    "a3_p2_head": "+ stride-4 (P2) level",
+    "a4_distilled": "A2 distilled from the ResNet-50 teacher",
+    "teacher_r50": "ResNet-50 teacher (reference, not a student row)",
 }
-ROW_ID = {"a0_baseline": "A0", "a1_aug_ema": "A1", "a2_tal_ciou": "A2"}
+ROW_ID = {"a0_baseline": "A0", "a1_aug_ema": "A1", "a2_tal_ciou": "A2",
+          "a3_p2_head": "A3", "a4_distilled": "A4", "teacher_r50": "T"}
 COLS = ["AP", "AP50", "AP75", "AP_tiny", "AP_small", "AP_med", "AR100"]
 
 

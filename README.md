@@ -8,10 +8,49 @@ The training loop, the label assigners, the box losses, the augmentations and th
 inference are all implemented in this repo. The ImageNet backbone comes from `timm`, and
 mAP comes from `pycocotools` — everything between those two is mine.
 
+## Tiled inference: what it actually buys, and what it costs
+
+Running the detector on overlapping crops of the **original** image (rather than on the
+640px letterbox) keeps a 6-pixel object at 6 pixels instead of 2. Qualitatively the effect
+is obvious - many more distant pedestrians get found:
+
 ![single pass vs tiled inference](assets/tiling_comparison.jpg)
 
-*The same frame and the same weights. Left: one 640 px pass, 47 detections. Right: SAHI-style tiled inference, 83 detections - the pedestrians in the far plaza only exist at native resolution.*
+*Same frame, same weights. Left: one 640px pass, 47 detections. Right: tiled, 83.*
 
+But "more detections" is not "better detector", so here is the same comparison scored
+properly on all 548 val images, against identical ground truth:
+
+| mode | AP | AP50 | **AP_tiny** | AP_small | AP_med | detections | ms/img |
+|---|---|---|---|---|---|---|---|
+| single pass @640 | **14.43** | **27.28** | 5.77 | **21.66** | **35.15** | 146,092 | **25.2** |
+| tiled (640, 0.2 overlap) | 11.95 | 25.57 | **7.20** | 14.82 | 23.28 | 244,836 | 166.5 |
+
+**Tiling does exactly what it is supposed to do on the objects it targets, and hurts
+everything else.** AP_tiny rises +1.43
+(25% relative), while overall AP falls
+-2.48 and AP_small falls -6.85,
+for **6.6x the latency** and
+68% more boxes.
+
+Why it hurts, in order of how much I believe each:
+
+1. **Scale mismatch with training.** The model was trained on letterboxed 640px images, so
+   it learned a particular distribution of apparent object sizes. A tile shows objects at
+   native resolution, which is a *larger* apparent size than anything it trained on - so
+   the medium and small objects it used to handle well now arrive out of distribution.
+   This is the dominant effect, and it is fixable: train with tiles in the augmentation
+   mix instead of bolting them on at inference.
+2. **Precision collapse.** 68% more detections at the same recall operating point means
+   most of the extra boxes are false positives, which AP punishes directly.
+3. **Boundary fragmentation.** Objects larger than a tile get cut; the greedy
+   non-maximum *merging* in `src/eval/sahi.py` unions partial boxes rather than keeping
+   both, but it cannot recover an object whose two halves were each only half-detected.
+
+The honest takeaway is that tiling is not a free accuracy win - it is a targeted trade,
+and whether to take it depends entirely on whether the thing you care about is in the
+tiny bin. For a drone-surveying task counting distant vehicles, +25% AP_tiny for 6.6x
+compute may be exactly the right call; for general detection it is not.
 
 ## Why this exists
 
