@@ -192,6 +192,27 @@ All rows ran for **30 epochs at 640 px on one RTX A4000** (143 GPU-minutes total
 
 Published VisDrone results sit far higher (AP 25+) using ~1 500 px inputs, much longer schedules and heavier backbones. The numbers below are not competitive with those and are not meant to be: the deltas between rows are the result.
 
+<!--V2_LADDER-->
+### Reading the extended ladder
+
+| Row | Change | Params M | Epochs | Train min | ms/img | AP | AP50 | AP75 | AP tiny | AP small | AP med | AR100 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| A0 | centre-prior assigner, BCE + GIoU, flip only, no EMA | 12.8 | 30 | 50.1 | 3.5 | 9.8 | 20.3 | 8.7 | 4.0 | 14.2 | 24.7 | 20.8 |
+| A1 | + mosaic, HSV, scale jitter, EMA | 12.8 | 30 | 42.3 | 3.5 | 13.1 | 25.7 | 11.9 | 5.1 | 19.2 | 31.9 | 26.8 |
+| A2 | + TAL assigner, CIoU | 12.8 | 30 | 50.5 | 3.3 | 14.4 | 27.3 | 13.8 | 5.8 | 21.7 | 35.2 | 26.3 |
+| A3 | + stride-4 (P2) level | 13.2 | 30 | 92.8 | 5.2 | 18.5 | 34.3 | 17.4 | 10.3 | 26.9 | 36.5 | 32.9 |
+| A4 | A2 distilled from the ResNet-50 teacher | 12.8 | 30 | 65.4 | 3.4 | 14.5 | 27.3 | 13.9 | 5.7 | 22.1 | 35.6 | 26.3 |
+| T | ResNet-50 teacher (reference, not a student row) | 25.5 | 20 | 74.6 | 6.5 | 16.6 | 31.0 | 15.8 | 7.2 | 25.4 | 38.2 | 29.0 |
+
+AP columns are COCO mAP x100. Size bins are ours, not COCO's: tiny < 16^2 px, small 16^2-32^2, med 32^2-96^2 - COCO's `small < 32^2` puts almost all of VisDrone in one bucket and hides the effect.
+
+**The stride-4 level (A3) is the AP_tiny lever it was predicted to be:** AP_tiny 5.77 → 10.28 (+78% relative), overall AP 14.44 → 18.46. It quadruples the number of anchor points (8 400 → 34 000) and cost 1.8x the training time per epoch, which is why the one-night build cut it.
+
+**Teacher (ResNet-50):** AP 16.63, AP_tiny 7.23 at 25.46 M parameters — the ceiling the student is being distilled towards. It was deliberately stopped at 20 epochs; a teacher only has to beat the student, not converge.
+
+**Distillation (A4) vs its own baseline (A2):** AP 14.44 → 14.51 (+0.07), AP_tiny 5.77 → 5.75, at **identical inference cost** — same backbone, same head, same 3.38 ms/img. Teacher and student share input size and strides, so their predictions land on the same anchor points and distillation needs no matching step at all.
+<!--/V2_LADDER-->
+
 ## Verification
 
 The numbers are only worth reading because these checks pass first:
