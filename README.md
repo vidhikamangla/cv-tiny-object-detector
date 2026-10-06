@@ -146,6 +146,46 @@ The cost is real and worth stating: the stride-4 map quadruples the anchor count
 no weights. That asymmetry — cheap in parameters, expensive in activations — is exactly why
 it was the first thing cut when this ran under a wall-clock budget.
 
+### Distillation did nothing, and that is the useful part
+
+A ResNet-50 teacher (16.63 AP, 25.5 M params) was distilled into the
+same ResNet-18 student as A2 — soft classification targets from the teacher's sigmoid scores
+plus an IoU loss between their boxes, applied only where the teacher is confident. Teacher
+and student share input size and strides, so their predictions land on exactly the same
+anchor points and distillation needs no matching step at all.
+
+| | AP | AP50 | AP_tiny | params | ms/img |
+|---|---|---|---|---|---|
+| A2 (student, baseline) | 14.44 | 27.28 | 5.77 | 12.8 | 3.26 |
+| **A4 (distilled)** | **14.51** | 27.25 | 5.75 | 12.8 | 3.38 |
+| T (teacher) | 16.63 | 30.95 | 7.23 | 25.5 | 6.46 |
+
+**+0.07 AP.** The teacher was 2.20 AP ahead and distillation
+closed **3%** of that gap — nothing, well inside run-to-run noise, and AP_tiny
+actually moved -0.02.
+
+Read alongside A3, this is the most informative pair of rows in the table. Two ways to
+improve the *same* student were tried:
+
+| attempt | what it targets | result |
+|---|---|---|
+| A4 distillation | **supervision quality** — better targets from a stronger model | +0.07 AP |
+| A3 stride-4 level | **spatial resolution** — somewhere to put the positive anchor | **+4.02 AP** |
+
+So the student was never supervision-limited; it was resolution-limited. The teacher's own
+advantage comes from richer features at the *same* strides, and the student cannot use that
+signal because its bottleneck is upstream of feature quality: on a stride-8 map a 12x12
+object covers about one cell and a 6x6 object is sub-cell. No amount of better targets
+creates a location to regress from.
+
+Caveats I would state before claiming this generalises: the teacher is only
+2.20 AP better (distillation usually wants a wider gap), it was deliberately stopped
+at 20 epochs, and the implementation uses logit and box
+distillation without feature mimicking, which the literature often finds matters most for
+dense detectors. A fair follow-up is to distil into the *A3* architecture, where the
+resolution bottleneck is already removed — that is the experiment this result argues for,
+and it is in `later.md`.
+
 ### Honest framing of the compute budget
 
 All rows ran for **30 epochs at 640 px on one RTX A4000** (143 GPU-minutes total across the three rows), with the epoch count fixed in advance so the rows differ only in the component under test and not in how long they trained.
