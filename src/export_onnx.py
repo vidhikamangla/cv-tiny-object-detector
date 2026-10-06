@@ -48,8 +48,16 @@ def main():
     a = ap.parse_args()
     cfg = C.load(a.config, a.sets)
 
-    model = build_model(cfg, torch.device("cpu")).eval()
     ck = torch.load(a.ckpt, map_location="cpu", weights_only=False)
+    # Architecture comes from the CHECKPOINT, not --config: a stride-4 or ResNet-50
+    # checkpoint will not load into the default architecture.
+    build_cfg = C.Cfg(dict(cfg))
+    saved = ck.get("cfg") or {}
+    if saved.get("model"):
+        build_cfg["model"] = dict(saved["model"])
+        if dict(saved["model"]) != dict(cfg.model):
+            print(f"using the checkpoint's model config: {dict(saved['model'])}")
+    model = build_model(build_cfg, torch.device("cpu")).eval()
     sd = ck.get("ema") if a.weights == "ema" and ck.get("ema") else ck["model"]
     model.load_state_dict(sd, strict=False)
 
