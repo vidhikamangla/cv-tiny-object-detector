@@ -75,7 +75,16 @@ def main():
         build_gt(ds, gt_path)
 
     ck = torch.load(a.ckpt, map_location="cpu", weights_only=False)
-    model = build_model(cfg, device)
+    # Build the architecture from the CHECKPOINT's own config, not from --config: a
+    # checkpoint may be a different backbone (the teacher) or carry the stride-4 level,
+    # and silently constructing the wrong architecture here is how a row goes missing.
+    build_cfg = C.Cfg(dict(cfg))
+    saved = ck.get("cfg") or {}
+    if saved.get("model"):
+        build_cfg["model"] = dict(saved["model"])
+        if dict(saved["model"]) != dict(cfg.model):
+            print(f"using the checkpoint's model config: {dict(saved['model'])}")
+    model = build_model(build_cfg, device)
     sd = ck.get("ema") if a.weights == "ema" and ck.get("ema") else ck["model"]
     missing = model.load_state_dict(sd, strict=False)
     if missing.missing_keys:
