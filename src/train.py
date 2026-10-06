@@ -20,6 +20,7 @@ from .data.dataset import VisDroneCache, collate
 from .data.visdrone import NUM_CLASSES
 from .ema import ModelEMA
 from .losses.criterion import Criterion
+from .losses.distill import distill_loss
 from .models.detector import TinyDet
 from .schedule import lr_at
 
@@ -88,6 +89,24 @@ def main():
     ema = ModelEMA(model, decay=float(cfg.train.get("ema_decay", 0.9998)),
                    tau=int(cfg.train.get("ema_tau", 2000))) if cfg.train.get("ema", False) else None
 
+    # optional teacher for knowledge distillation
+    teacher, dcfg = None, cfg.get("distill", {})
+    if dcfg and dcfg.get("teacher_ckpt"):
+        tck = torch.load(dcfg["teacher_ckpt"], map_location="cpu", weights_only=False)
+        tcfg = C.Cfg(tck.get("cfg") or {})
+        teacher = TinyDet(backbone=tcfg.model.backbone, num_classes=NUM_CLASSES,
+                          out_ch=int(tcfg.model.out_ch),
+                          p2=bool(tcfg.model.get("p2", False)),
+                          pretrained=False,
+                          head_stacks=int(tcfg.model.get("head_stacks", 2))).to(device)
+        teacher.load_state_dict(tck.get("ema") or tck["model"], strict=False)
+        teacher.eval()
+        for prm in teacher.parameters():
+            prm.requires_grad_(False)
+        print(f"distilling from {dcfg['teacher_ckpt']} "
+              f"({tcfg.model.backbone}, w_cls={dcfg.get('w_cls',1.0)}, "
+              f"w_box={dcfg.get('w_box',1.0)})")
+
     epochs = int(cfg.train.epochs)
     steps_per_epoch = len(dl)
     total_steps = epochs * steps_per_epoch
@@ -130,6 +149,18 @@ def main():
                 x = normalise(img, mean, std)
                 out = model(x)
                 loss, parts = crit(out, batch)
+                if teacher is not None:
+                    with torch.no_grad():
+                        t_out = teacher(x)
+                    kd, kparts = distill_loss(
+                        out, t_out,
+                        w_cls=float(dcfg.get("w_cls", 1.0)),
+                        w_box=float(dcfg.get("w_box", 1.0)),
+                        conf_thresh=float(dcfg.get("conf_thresh", 0.1)),
+                        box_kind=cfg.loss.box,
+                        temperature=float(dcfg.get("temperature", 1.0)))
+                    loss = loss + kd
+                    parts.update(kparts)
             opt.zero_grad(set_to_none=True)
             if scaler.is_enabled():
                 scaler.scale(loss).backward()

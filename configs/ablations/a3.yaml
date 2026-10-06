@@ -1,0 +1,19 @@
+# A3 = A2 + the stride-4 (P2) feature level.
+#
+# This is the row the one-night build cut, and it is the most direct attack on AP_tiny:
+# with a stride-8 finest map, a 12x12 object covers roughly one cell and a 6x6 object is
+# sub-cell - there is literally nowhere to put a positive. Adding stride 4 quadruples the
+# number of anchor points (8 400 -> 34 000) and roughly doubles step time, which is
+# exactly why it was the first thing dropped under a wall-clock budget.
+_base: ../base.yaml
+run_name: a3_p2_head
+model:
+  p2: true
+train:
+  device: cuda:0
+  ema: true
+loss:
+  assigner: tal
+  cls: bce
+  box: ciou
+  topk: 10

@@ -1,0 +1,24 @@
+# Distil the ResNet-50 teacher into the same resnet18 student as A2.
+#
+# Teacher and student share input size and strides, so their predictions land on exactly
+# the same anchor points and distillation is a per-point comparison with no matching step.
+# The student keeps its own ground-truth loss; KD is added on top, which is what lets the
+# comparison against A2 isolate the teacher's contribution.
+_base: base.yaml
+run_name: a4_distilled
+model:
+  backbone: resnet18
+  p2: false
+train:
+  device: cuda:0
+  ema: true
+loss:
+  assigner: tal
+  cls: bce
+  box: ciou
+distill:
+  teacher_ckpt: outputs/runs/teacher_r50/last.pt
+  w_cls: 1.0
+  w_box: 1.0
+  conf_thresh: 0.1     # ignore box targets where the teacher itself is unsure
+  temperature: 1.0

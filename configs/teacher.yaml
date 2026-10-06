@@ -1,0 +1,17 @@
+# ResNet-50 teacher, same recipe as A2. Exists to distil into the resnet18 student:
+# the interesting question is how much of a 2x-parameter backbone's accuracy survives
+# transfer into a model that costs the same to run as A2.
+_base: base.yaml
+run_name: teacher_r50
+model:
+  backbone: resnet50
+  out_ch: 128
+  p2: false
+train:
+  device: cuda:0
+  batch: 12          # r50 activations are heavier; keep headroom on a 16 GB card
+  ema: true
+loss:
+  assigner: tal
+  cls: bce
+  box: ciou
